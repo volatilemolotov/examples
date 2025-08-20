@@ -92,6 +92,7 @@ jupyterhub:
           value: "http://{{ .Release.Name }}-mlflow-tracking"
 
 ray-cluster:
+  enabled: false
   head:
     serviceType: ClusterIP
     resources:
@@ -120,6 +121,10 @@ localPersistence:
   # 1. Create a directory on your host: `mkdir -p /data/models-cache`
   # 2. Start minikube with the mount: `minikube start --mount --mount-string="/data/models-cache:/data/models-cache"`
   # 3. Set enabled to true below, or via `--set localPersistence.enabled=true`
-  enabled: true
+  enabled: false
   # This path must match the destination path inside the minikube node.
   hostPath: "/tmp/models-cache"
+
+ollama:
+  enabled: true
+
