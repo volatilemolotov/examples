@@ -8,25 +8,40 @@ jupyterhub:
 
   singleuser:
     fsGid: 100
+    startTimeout: 600
     defaultUrl: "/lab/tree/welcome.ipynb"
     lifecycleHooks:
-      postStart:
-        exec:
-          command: ["/bin/sh", "-c", "pip install -r /tmp/requirements.txt"]
+      postStart: null
+        # exec:
+        #   command: ["/bin/sh", "-c", "pip install -r /tmp/requirements.txt"]
+    image:
+      name: jupyterhub/k8s-singleuser-sample
+      tag: "5.3.0"
     initContainers:
       - name: model-initializer
-        image: python:3.9-slim-bullseye
+        image: python:3.12-slim-bullseye
         env:
           - name: TRANSFORMERS_CACHE
             value: /tmp/models-cache
+            value: /tmp/models-cache
           - name: HF_HOME
             value: /tmp/models-cache
+          - name: TMPDIR
+            value: /tmp/models-cache
+          - name: PIP_CACHE_DIR
+            value: /tmp/models-cache
+          - name: PIP_NO_CACHE_DIR
+            value: "1"
+          - name: PYTHONUSERBASE
+            value: /tmp/models-cache
+          - name: PYTHONUNBUFFERED
+            value: "1"
         command:
           - /bin/sh
           - -c
           - |
             set -e
-            pip install --no-cache-dir -r /tmp/requirements.txt
+            pip install --user --no-cache-dir -r /tmp/requirements.txt
             python /tmp/download_models.py
         volumeMounts:
           - name: requirements-txt
@@ -42,6 +57,12 @@ jupyterhub:
           - name: hf-token-secret
             mountPath: "/etc/secrets/huggingface"
             readOnly: true
+        resources:
+          requests:
+            ephemeral-storage: "10Gi"
+          limits:
+            ephemeral-storage: "10Gi"
+
     extraVolumes:
       - name: requirements-txt
         configMap:
@@ -78,6 +99,13 @@ jupyterhub:
         RAY_ADDRESS: "{{ .Release.Name }}-kuberay-head-svc:6379"
         MLFLOW_TRACKING_URI: "http://{{ .Release.Name }}-mlflow-tracking"
         # JUPYTERLAB_DIR: "/opt"
+        MLFLOW_TRACKING_URI: "http://{{ .Release.Name }}-mlflow"
+        HF_HOME: "/tmp/models-cache"
+        TRANSFORMERS_CACHE: "/tmp/models-cache/"
+        TMPDIR: "/tmp/models-cache/"
+        PIP_CACHE_DIR: "/tmp/models-cache/"
+        PYTHONUSERBASE: "/tmp/models-cache/"
+        PYTHONPATH: "/tmp/models-cache/lib/python3.9/site-packages"
     resources:
       limits:
         memory: 16Gi
@@ -90,6 +118,10 @@ jupyterhub:
           value: "{{ .Release.Name }}-kuberay-head-svc"
         - name: "MLFLOW_TRACKING_URI"
           value: "http://{{ .Release.Name }}-mlflow-tracking"
+    extraConfig:
+      00-spawner-timeouts: |
+        c.KubeSpawner.start_timeout = 1800
+        c.KubeSpawner.http_timeout = 60
 
 ray-cluster:
   enabled: false
@@ -110,10 +142,10 @@ modelsCachePvc:
   # To use the default StorageClass, set storageClassName to null or omit it.
   # To use a specific StorageClass (e.g. "standard-rwo" on GKE), provide its name.
   # To create a PVC that doesn't request any StorageClass, set it to an empty string ("").
-  storageClassName: null
+  storageClassName: "standard-rwo"
   accessModes:
     - ReadWriteOnce
-  size: 10Gi
+  size: 27Gi
 
 localPersistence:
   # For local development with minikube, this allows persisting the models-cache
