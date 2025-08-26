@@ -158,20 +158,19 @@ localPersistence:
   # 1. Create a directory on your host: `mkdir -p /data/models-cache`
   # 2. Start minikube with the mount: `minikube start --mount --mount-string="/data/models-cache:/data/models-cache"`
   # 3. Set enabled to true below, or via `--set localPersistence.enabled=true`
-  enabled: false
+  enabled: true
   # This path must match the destination path inside the minikube node.
   hostPath: "/tmp/models-cache"
 
 ollama:
   enabled: true
-  ollama:
-    models:
-      pull:
-        - gemma3
+  models:
+    pull:
+      - gemma3
+  mountPath: "/tmp/models-cache"
   persistentVolume:
     enabled: true
-    # existingClaim: "{{ .Release.Name }}-models-cache-pvc"
-    # subPath: ollama
+    existingClaim: "ai-starter-kit-models-cache-pvc"
     
   resources:
     requests:
@@ -185,3 +184,5 @@ ollama:
   nodeSelector:
     cloud.google.com/gke-accelerator: nvidia-l4
 
+
+    
