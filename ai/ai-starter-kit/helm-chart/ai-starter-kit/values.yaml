@@ -163,20 +163,3 @@ ollama:
     models:
       pull:
         - llama3.2
-  persistentVolume:
-    enabled: true
-    # existingClaim: "{{ .Release.Name }}-models-cache-pvc"
-    # subPath: ollama
-    
-  resources:
-    requests:
-      cpu: "2"
-      memory: "10Gi"
-      nvidia.com/gpu: "1"
-    limits:
-      cpu: "2"
-      memory: "10Gi"
-      nvidia.com/gpu: "1"
-  nodeSelector:
-    cloud.google.com/gke-accelerator: nvidia-l4
-
