@@ -23,7 +23,6 @@ jupyterhub:
         env:
           - name: TRANSFORMERS_CACHE
             value: /tmp/models-cache
-            value: /tmp/models-cache
           - name: HF_HOME
             value: /tmp/models-cache
           - name: TMPDIR
@@ -76,6 +75,9 @@ jupyterhub:
       - name: welcome-notebook
         configMap:
           name: "{{ .Release.Name }}-welcome-notebook"
+      - name: chat-bot
+        configMap:
+          name: "{{ .Release.Name }}-chat-bot"
       - name: hf-token-secret
         secret:
           secretName: "{{ .Release.Name }}-hf-token-secret"
@@ -92,6 +94,9 @@ jupyterhub:
       - name: welcome-notebook
         mountPath: /tmp/welcome.ipynb
         subPath: welcome.ipynb
+      - name: chat-bot
+        mountPath: /tmp/chat_bot.ipynb
+        subPath: chat_bot.ipynb
       - name: hf-token-secret
         mountPath: "/etc/secrets/huggingface"
         readOnly: true
@@ -142,7 +147,7 @@ modelsCachePvc:
   # To use the default StorageClass, set storageClassName to null or omit it.
   # To use a specific StorageClass (e.g. "standard-rwo" on GKE), provide its name.
   # To create a PVC that doesn't request any StorageClass, set it to an empty string ("").
-  storageClassName: "standard-rwo"
+  storageClassName: null
   accessModes:
     - ReadWriteOnce
   size: 27Gi
@@ -162,7 +167,7 @@ ollama:
   ollama:
     models:
       pull:
-        - llama3.2
+        - gemma3
   persistentVolume:
     enabled: true
     # existingClaim: "{{ .Release.Name }}-models-cache-pvc"

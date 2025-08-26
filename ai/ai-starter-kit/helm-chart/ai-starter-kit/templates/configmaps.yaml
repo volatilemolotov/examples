@@ -39,3 +39,15 @@ metadata:
 data:
   welcome.ipynb: |-
 {{ .Files.Get "files/welcome.ipynb" | nindent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-chat-bot
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+data:
+  chat_bot.ipynb: |-
+{{ .Files.Get "files/chat_bot.ipynb" | nindent 4 }}
