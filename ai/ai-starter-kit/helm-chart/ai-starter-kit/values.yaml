@@ -171,18 +171,4 @@ ollama:
   persistentVolume:
     enabled: true
     existingClaim: "ai-starter-kit-models-cache-pvc"
-    
-  # resources:
-  #   requests:
-  #     cpu: "2"
-  #     memory: "10Gi"
-  #     nvidia.com/gpu: "1"
-  #   limits:
-  #     cpu: "2"
-  #     memory: "10Gi"
-  #     nvidia.com/gpu: "1"
-  # nodeSelector:
-  #   cloud.google.com/gke-accelerator: nvidia-l4
 
-
-    
