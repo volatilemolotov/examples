@@ -23,7 +23,6 @@ jupyterhub:
         env:
           - name: TRANSFORMERS_CACHE
             value: /tmp/models-cache
-            value: /tmp/models-cache
           - name: HF_HOME
             value: /tmp/models-cache
           - name: TMPDIR
@@ -70,12 +69,15 @@ jupyterhub:
       - name: models-cache
         persistentVolumeClaim:
           claimName: "{{ .Release.Name }}-models-cache-pvc"
-      - name: hf-download-script
+      - name: download-models-py
         configMap:
-          name: "{{ .Release.Name }}-hf-download-script"
-      - name: welcome-notebook
+          name: "{{ .Release.Name }}-download-models-py"
+      - name: welcome-ipynb
         configMap:
-          name: "{{ .Release.Name }}-welcome-notebook"
+          name: "{{ .Release.Name }}-welcome-ipynb"
+      - name: chat-bot-ipynb
+        configMap:
+          name: "{{ .Release.Name }}-chat-bot-ipynb"
       - name: hf-token-secret
         secret:
           secretName: "{{ .Release.Name }}-hf-token-secret"
@@ -86,12 +88,15 @@ jupyterhub:
         subPath: requirements.txt
       - name: models-cache
         mountPath: /tmp/models-cache
-      - name: hf-download-script
+      - name: download-models-py
         mountPath: /tmp/download_models.py
         subPath: download_models.py
-      - name: welcome-notebook
+      - name: welcome-ipynb
         mountPath: /tmp/welcome.ipynb
         subPath: welcome.ipynb
+      - name: chat-bot-ipynb
+        mountPath: /tmp/chat_bot.ipynb
+        subPath: chat_bot.ipynb
       - name: hf-token-secret
         mountPath: "/etc/secrets/huggingface"
         readOnly: true
@@ -142,7 +147,7 @@ modelsCachePvc:
   # To use the default StorageClass, set storageClassName to null or omit it.
   # To use a specific StorageClass (e.g. "standard-rwo" on GKE), provide its name.
   # To create a PVC that doesn't request any StorageClass, set it to an empty string ("").
-  storageClassName: "standard-rwo"
+  storageClassName: null
   accessModes:
     - ReadWriteOnce
   size: 27Gi
@@ -153,13 +158,17 @@ localPersistence:
   # 1. Create a directory on your host: `mkdir -p /data/models-cache`
   # 2. Start minikube with the mount: `minikube start --mount --mount-string="/data/models-cache:/data/models-cache"`
   # 3. Set enabled to true below, or via `--set localPersistence.enabled=true`
-  enabled: false
+  enabled: true
   # This path must match the destination path inside the minikube node.
   hostPath: "/tmp/models-cache"
 
 ollama:
   enabled: true
-  ollama:
-    models:
-      pull:
-        - llama3.2
+  models:
+    pull:
+      - gemma3
+  mountPath: "/tmp/models-cache"
+  persistentVolume:
+    enabled: true
+    existingClaim: "ai-starter-kit-models-cache-pvc"
+
