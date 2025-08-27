@@ -69,15 +69,15 @@ jupyterhub:
       - name: models-cache
         persistentVolumeClaim:
           claimName: "{{ .Release.Name }}-models-cache-pvc"
-      - name: hf-download-script
+      - name: download-models-py
         configMap:
-          name: "{{ .Release.Name }}-hf-download-script"
-      - name: welcome-notebook
+          name: "{{ .Release.Name }}-download-models-py"
+      - name: welcome-ipynb
         configMap:
-          name: "{{ .Release.Name }}-welcome-notebook"
-      - name: chat-bot
+          name: "{{ .Release.Name }}-welcome-ipynb"
+      - name: chat-bot-ipynb
         configMap:
-          name: "{{ .Release.Name }}-chat-bot"
+          name: "{{ .Release.Name }}-chat-bot-ipynb"
       - name: hf-token-secret
         secret:
           secretName: "{{ .Release.Name }}-hf-token-secret"
@@ -88,13 +88,13 @@ jupyterhub:
         subPath: requirements.txt
       - name: models-cache
         mountPath: /tmp/models-cache
-      - name: hf-download-script
+      - name: download-models-py
         mountPath: /tmp/download_models.py
         subPath: download_models.py
-      - name: welcome-notebook
+      - name: welcome-ipynb
         mountPath: /tmp/welcome.ipynb
         subPath: welcome.ipynb
-      - name: chat-bot
+      - name: chat-bot-ipynb
         mountPath: /tmp/chat_bot.ipynb
         subPath: chat_bot.ipynb
       - name: hf-token-secret
@@ -172,17 +172,17 @@ ollama:
     enabled: true
     existingClaim: "ai-starter-kit-models-cache-pvc"
     
-  resources:
-    requests:
-      cpu: "2"
-      memory: "10Gi"
-      nvidia.com/gpu: "1"
-    limits:
-      cpu: "2"
-      memory: "10Gi"
-      nvidia.com/gpu: "1"
-  nodeSelector:
-    cloud.google.com/gke-accelerator: nvidia-l4
+  # resources:
+  #   requests:
+  #     cpu: "2"
+  #     memory: "10Gi"
+  #     nvidia.com/gpu: "1"
+  #   limits:
+  #     cpu: "2"
+  #     memory: "10Gi"
+  #     nvidia.com/gpu: "1"
+  # nodeSelector:
+  #   cloud.google.com/gke-accelerator: nvidia-l4
 
 
     
