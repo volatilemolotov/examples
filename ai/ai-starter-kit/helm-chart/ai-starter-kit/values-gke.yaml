@@ -9,8 +9,6 @@ jupyterhub:
   singleuser:
     fsGid: 100
     defaultUrl: "/lab/tree/welcome.ipynb"
-    lifecycleHooks:
-      postStart: null
     image:
       tag: "5.0.0-debian-12-r2"
     initContainers:
