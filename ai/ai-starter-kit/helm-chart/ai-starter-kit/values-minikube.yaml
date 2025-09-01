@@ -11,6 +11,10 @@ jupyterhub:
       tag: "5.0.0-debian-12-r2"
     fsGid: 100
     defaultUrl: "/lab/tree/welcome.ipynb"
+    lifecycleHooks:
+      postStart:
+        exec:
+          command: ["/bin/sh", "-c", "pip install -r /tmp/requirements.txt"]
     initContainers:
       - name: model-initializer
         image: python:3.9-slim-bullseye

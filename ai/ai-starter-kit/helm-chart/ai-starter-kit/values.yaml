@@ -126,7 +126,6 @@ jupyterhub:
         c.KubeSpawner.http_timeout = 60
 
 ray-cluster:
-  enabled: false
   image:
     tag: 2.41.0-py311-gpu
   head:
@@ -190,7 +189,7 @@ ollama:
 
 
 ramalama:
-  enabled: false
+  enabled: true
   command: ["sh", "-c" , "trap 'exit 0' TERM; while true; do sleep 60 & wait; done"]
   image:
     repository: "quay.io/ramalama/ramalama"
