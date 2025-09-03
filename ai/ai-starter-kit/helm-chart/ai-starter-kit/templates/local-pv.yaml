@@ -10,7 +10,7 @@ spec:
   capacity:
     storage: {{ .Values.modelsCachePvc.size }}
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   hostPath:
     path: "{{ .Values.localPersistence.hostPath }}"
 {{- end }}
