@@ -1,53 +1,18 @@
 ---
 {{- /*
-Create ConfigMaps for jupyterhub singleuser pods.
-These ConfigMaps are mounted as volumes.
+Create a single ConfigMap with all initialization files for the jupyterhub singleuser pod.
+This ConfigMap is mounted as a volume.
 */ -}}
----
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Release.Name }}-requirements-txt
+  name: ai-starter-kit-init-files
   labels:
-    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
-    app.kubernetes.io/instance: {{ .Release.Name | quote }}
-    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    app.kubernetes.io/managed-by: {{ $.Release.Service | quote }}
+    app.kubernetes.io/instance: {{ $.Release.Name | quote }}
+    helm.sh/chart: "{{ $.Chart.Name }}-{{ $.Chart.Version }}"
 data:
-  requirements.txt: |-
-{{ .Files.Get "files/requirements.txt" | nindent 4 }}
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ .Release.Name }}-hf-download-script
-  labels:
-    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
-    app.kubernetes.io/instance: {{ .Release.Name | quote }}
-    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
-data:
-  download_models.py: |-
-{{ .Files.Get "files/download_models.py" | nindent 4 }}
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ .Release.Name }}-welcome-notebook
-  labels:
-    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
-    app.kubernetes.io/instance: {{ .Release.Name | quote }}
-    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
-data:
-  welcome.ipynb: |-
-{{ .Files.Get "files/welcome.ipynb" | nindent 4 }}
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ .Release.Name }}-ray-notebook
-  labels:
-    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
-    app.kubernetes.io/instance: {{ .Release.Name | quote }}
-    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
-data:
-  ray.ipynb: |-
-{{ .Files.Get "files/ray.ipynb" | nindent 4 }}
+{{- range $path, $bytes := .Files.Glob "files/*" }}
+  {{ base $path | quote }}: |-
+{{ $bytes | toString | nindent 4 }}
+{{- end }}
