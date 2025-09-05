@@ -126,6 +126,7 @@ ray-cluster:
         value: "/mnt/ray-storage/temp"
   head:
     serviceType: ClusterIP
+    serviceAnnotations: {}
     resources:
       requests:
         cpu: "4"
@@ -175,9 +176,9 @@ modelsCachePvc:
   # To use the default StorageClass, set storageClassName to null or omit it.
   # To use a specific StorageClass (e.g. "standard-rwo" on GKE), provide its name.
   # To create a PVC that doesn't request any StorageClass, set it to an empty string ("").
-  storageClassName: "standard-rwo"
+  storageClassName: "standard-rwx"
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   size: 100Gi
 
 localPersistence:
