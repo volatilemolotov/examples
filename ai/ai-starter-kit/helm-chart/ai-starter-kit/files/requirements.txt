@@ -4,7 +4,7 @@ tensorflow
 huggingface_hub
 numpy
 ipywidgets
-mlflow
+mlflow==2.19.0
 ollama
 panel
-ray
+ray==2.41.0

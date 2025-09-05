@@ -38,7 +38,7 @@ jupyterhub:
 
             python /tmp/download_models.py
 
-            # populate workspace with initial files
+            # populate workspace with initial notebook files
             for f in /tmp/*.ipynb; do
               if [ -f "$f" ]; then
                 # Use cp -n to not overwrite existing files.
@@ -74,7 +74,7 @@ jupyterhub:
           secretKeyRef:
             name: ai-starter-kit-hf-token-secret
             key: token
-      RAY_ADDRESS: "ai-starter-kit-kuberay-head-svc:10001"
+      RAY_ADDRESS: "ray://ai-starter-kit-kuberay-head-svc:10001"
       MLFLOW_TRACKING_URI: "http://ai-starter-kit-mlflow:5000"
   hub:
     db:
@@ -89,9 +89,10 @@ jupyterhub:
         c.DummyAuthenticator.password = "sneakypass"
       01-spawner-timeouts: |
         c.KubeSpawner.start_timeout = 1800
+
 ray-cluster:
   image:
-    tag: 2.41.0-py311-gpu
+    tag: "2.41.0-py312-cpu-aarch64"
   head:
     serviceType: ClusterIP
     resources:
@@ -114,14 +115,30 @@ ray-cluster:
         memory: "8G"
         ephemeral-storage: 10Gi
 
+mlflow:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
 huggingface:
   # Provide your Hugging Face token here to download gated or private models.
   # It is recommended to set this via --set or a separate values file, e.g.,
   # --set huggingface.token=hf_...
   token: ""
 
-modelsCachePvc: # check this out for GKE
+rayPvc:
   enabled: false
+  storageClassName: "standard-rwo"
+  accessModes:
+    - ReadWriteOnce
+  size: 100Gi
+
+modelsCachePvc:
+  enabled: true
   # To use the default StorageClass, set storageClassName to null or omit it.
   # To use a specific StorageClass (e.g. "standard-rwo" on GKE), provide its name.
   # To create a PVC that doesn't request any StorageClass, set it to an empty string ("").
@@ -136,7 +153,7 @@ localPersistence:
   # 1. Create a directory on your host: `mkdir -p /data/models-cache`
   # 2. Start minikube with the mount: `minikube start --mount --mount-string="/data/models-cache:/data/models-cache"`
   # 3. Set enabled to true below, or via `--set localPersistence.enabled=true`
-  enabled: false
+  enabled: true
   # This path must match the destination path inside the minikube node.
   hostPath: "/tmp/models-cache"
 
@@ -159,5 +176,3 @@ ramalama:
     repository: "quay.io/ramalama/ramalama"
     tag: "latest"
     pullPolicy: IfNotPresent
-
-    
