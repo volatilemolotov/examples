@@ -87,8 +87,6 @@ ray-cluster:
   image:
     tag: 2.41.0-py312-gpu
   head:
-    serviceType: ClusterIP
-    serviceAnnotations: {}
     resources:
       requests:
         cpu: "4"
@@ -127,14 +125,9 @@ rayPvc:
   enabled: true
 
 modelsCachePvc:
-  enabled: true
-  # To use the default StorageClass, set storageClassName to null or omit it.
-  # To use a specific StorageClass (e.g. "standard-rwo" on GKE), provide its name.
-  # To create a PVC that doesn't request any StorageClass, set it to an empty string ("").
   storageClassName: "standard-rwx"
   accessModes:
     - ReadWriteMany
-  size: 100Gi
 
 localPersistence:
   enabled: false
