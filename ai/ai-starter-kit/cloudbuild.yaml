@@ -23,18 +23,39 @@ steps:
     mv /workspace/common-infra/common /workspace/common
   waitFor: ["-"]
 
+- id: "ai-starter-kit: validate platform"
+  name: "gcr.io/${PROJECT_ID}/terraform"
+  dir: "/workspace/terraform"
+  script: |
+    terraform init -no-color
+    terraform validate -no-color
+  waitFor: ["ai-starter-kit: clone common-infra"]
+
 - id: 'ai-starter-kit: create gke cluster'
-  name: "gcr.io/cloud-builders/gcloud"
+  name: "gcr.io/${PROJECT_ID}/terraform"
+  dir: "/workspace/terraform"
+  env:
+  - "KUBE_LOAD_CONFIG_FILE=false"
+  entrypoint: 'sh'
   args:
-  - 'container'
-  - 'clusters'
-  - 'create-auto'
-  - 'ml-ai-starter-kit-${SHORT_SHA}-${_BUILD_ID}-cluster'
-  - --project=${PROJECT_ID}
-  - --region=${_REGION}
-  - --release-channel=rapid
-  - --labels=created-by=ai-on-gke,guide=ai-starter-kit-test
-  waitFor: ['ai-starter-kit: clone common-infra']
+  - '-c'
+  - |
+    set -e
+
+    echo "fail" > /workspace/ai_starter_kit_cluster_result.txt
+    terraform apply \
+    -var-file=default_env.tfvars \
+    -var=project_id=$PROJECT_ID \
+    -var=default_resource_name=ml-ai-starter-kit-${SHORT_SHA}-${_BUILD_ID} \
+    -var=cluster_name=ml-ai-starter-kit-${SHORT_SHA}-${_BUILD_ID}-cluster \
+    -var=cluster_location=${_REGION} \
+    -var=private_cluster=false \
+    -var=autopilot_cluster=${_AUTOPILOT_CLUSTER} \
+    -var=service_account_name=ml-ai-starter-kit-${SHORT_SHA}-${_BUILD_ID}-sa \
+    -auto-approve -no-color
+    echo "pass" > /workspace/ai_starter_kit_cluster_result.txt
+  allowFailure: true
+  waitFor: ['ai-starter-kit: validate platform']
 
 - id: 'ai-starter-kit: generate kubeconfig'
   name: 'gcr.io/cloud-builders/gcloud'
@@ -136,14 +157,28 @@ steps:
   waitFor: ['ai-starter-kit: make install_gke']
 
 - id: 'ai-starter-kit: cleanup gke cluster'
-  name: "gcr.io/cloud-builders/gcloud"
+  name: "gcr.io/${PROJECT_ID}/terraform"
+  dir: "/workspace/terraform"
+  env:
+  - "KUBE_LOAD_CONFIG_FILE=false"
+  entrypoint: 'sh'
   args:
-  - 'container'
-  - 'clusters'
-  - 'delete'
-  - 'ml-ai-starter-kit-${SHORT_SHA}-${_BUILD_ID}-cluster'
-  - --region=${_REGION}
-  - --quiet
+  - '-c'
+  - |
+    set -e
+
+    echo "fail" > /workspace/ai_starter_kit_cleanup_result.txt
+    terraform destroy \
+    -var-file=default_env.tfvars \
+    -var=project_id=$PROJECT_ID \
+    -var=default_resource_name=ml-ai-starter-kit-${SHORT_SHA}-${_BUILD_ID} \
+    -var=cluster_name=ml-ai-starter-kit-${SHORT_SHA}-${_BUILD_ID}-cluster \
+    -var=cluster_location=${_REGION} \
+    -var=private_cluster=false \
+    -var=autopilot_cluster=${_AUTOPILOT_CLUSTER} \
+    -var=service_account_name=ml-ai-starter-kit-${SHORT_SHA}-${_BUILD_ID}-sa \
+    -auto-approve -no-color
+    echo "pass" > /workspace/ai_starter_kit_cleanup_result.txt
   allowFailure: true
   waitFor: ['ai-starter-kit: test jupyterhub', 'ai-starter-kit: test ray cluster']
 
@@ -156,6 +191,11 @@ steps:
     set -e
 
     echo "pass" > /workspace/check_result.txt
+
+    if [[ $(cat /workspace/ai_starter_kit_cluster_result.txt) != "pass" ]]; then
+      echo "ai starter kit cluster creation failed"
+      echo "error" > /workspace/check_result.txt
+    fi
 
     if [[ $(cat /workspace/ai_starter_kit_make_install_gke_result.txt) != "pass" ]]; then
       echo "ai starter kit make install_gke failed"
@@ -172,6 +212,11 @@ steps:
       echo "error" > /workspace/check_result.txt
     fi
 
+    if [[ $(cat /workspace/ai_starter_kit_cleanup_result.txt) != "pass" ]]; then
+      echo "ai starter kit clean up failed"
+      echo "error" > /workspace/check_result.txt
+    fi
+
     if [[ $(cat /workspace/check_result.txt) != "pass" ]]; then
       cat /workspace/check_result.txt
       exit 1
@@ -182,7 +227,7 @@ substitutions:
   _AUTOPILOT_CLUSTER: "true"
   _REGION: us-east4
   # _USER_NAME: github
-  _BUILD_ID: "123456" #${BUILD_ID:0:8}
+  _BUILD_ID: "1234567" #${BUILD_ID:0:8}
 # logsBucket: gs://ai-on-gke-qss-build-logs
 options:
   logging: CLOUD_LOGGING_ONLY
