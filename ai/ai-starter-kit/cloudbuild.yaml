@@ -13,27 +13,17 @@
 # limitations under the License.
 
 steps:
-- id: "ai-starter-kit: clone common-infra"
-  name: "gcr.io/cloud-builders/git"
-  entrypoint: "sh"
-  args:
-  - "-c"
-  - |
-    git clone -b main --single-branch https://github.com/ai-on-gke/common-infra.git /workspace/common-infra
-    mv /workspace/common-infra/common /workspace/common
-  waitFor: ["-"]
-
 - id: "ai-starter-kit: validate platform"
   name: "gcr.io/${PROJECT_ID}/terraform"
-  dir: "/workspace/terraform"
+  dir: "/workspace/ci/terraform"
   script: |
     terraform init -no-color
     terraform validate -no-color
-  waitFor: ["ai-starter-kit: clone common-infra"]
+  waitFor: ["-"]
 
 - id: 'ai-starter-kit: create gke cluster'
   name: "gcr.io/${PROJECT_ID}/terraform"
-  dir: "/workspace/terraform"
+  dir: "/workspace/ci/terraform"
   env:
   - "KUBE_LOAD_CONFIG_FILE=false"
   entrypoint: 'sh'
@@ -103,24 +93,14 @@ steps:
     set -e
 
     echo "fail" > /workspace/ai_starter_kit_jupyterhub_test_result.txt
-    kubectl get pods
-
-    kubectl wait --for=condition=Ready pods -l 'component!=continuous-image-puller' --timeout=1800s
-    kubectl get pods
-    kubectl get services
-    kubectl get secrets hub -o=jsonpath='{.data.values\.yaml}' | base64 -d > /workspace/common/modules/jupyter/jupyter_config/config-selfauth.yaml
-    kubectl port-forward service/ai-starter-kit-jupyterhub-proxy-public 8081:80 &
-    # Wait port-forwarding to take its place
-    sleep 5s
 
     apt update
-    apt install python3-venv --assume-yes
+    apt install make python3-venv --assume-yes
     apt install python3-pip --assume-yes
     pip install pyyaml requests packaging
 
-    cd /workspace/common/modules/jupyter/tests
-    mv /workspace/test_hub.py /workspace/common/modules/jupyter/tests/test_hub.py
-    python3 test_hub.py "127.0.0.1:8081"
+    make validate_jupyterhub
+
     echo "pass" > /workspace/ai_starter_kit_jupyterhub_test_result.txt
   allowFailure: true
   waitFor: ['ai-starter-kit: make install_gke']
@@ -137,20 +117,12 @@ steps:
     set -e
     echo "fail" > /workspace/ai_starter_kit_ray_result.txt
 
-    kubectl wait --for=condition=Ready pods -l 'component!=continuous-image-puller' --timeout=1800s
-    kubectl get pods
-    kubectl get services
-
-    kubectl port-forward service/ai-starter-kit-kuberay-head-svc 8265:8265 &
-    # Wait port-forwarding to take its place
-    sleep 10s
-
     apt update
-    apt install python3-venv --assume-yes
+    apt install make python3-venv --assume-yes
     apt install python3-pip --assume-yes
     pip install ray==2.41.0 "ray[data,train,tune,serve]"
 
-    ray job submit --address=http://127.0.0.1:8265 -- python -c "import ray; ray.init(); print(ray.cluster_resources())"
+    make validate_ray
 
     echo "pass" > /workspace/ai_starter_kit_ray_result.txt
   allowFailure: true
@@ -158,7 +130,7 @@ steps:
 
 - id: 'ai-starter-kit: cleanup gke cluster'
   name: "gcr.io/${PROJECT_ID}/terraform"
-  dir: "/workspace/terraform"
+  dir: "/workspace/ci/terraform"
   env:
   - "KUBE_LOAD_CONFIG_FILE=false"
   entrypoint: 'sh'

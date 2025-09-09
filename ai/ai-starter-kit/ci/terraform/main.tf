@@ -59,7 +59,7 @@ locals {
 }
 
 provider "kubernetes" {
-  alias                  = "llamaindex"
+  alias                  = "ai_starter_kit"
   host                   = local.host
   token                  = data.google_client_config.default.access_token
   cluster_ca_certificate = var.private_cluster ? "" : base64decode(module.gke_cluster.ca_certificate)
@@ -78,9 +78,9 @@ locals {
 }
 
 
-module "llamaindex_workload_identity" {
+module "ai_starter_kit_workload_identity" {
   providers = {
-    kubernetes = kubernetes.llamaindex
+    kubernetes = kubernetes.ai_starter_kit
   }
   source     = "terraform-google-modules/kubernetes-engine/google//modules/workload-identity"
   name       = local.service_account_name
@@ -91,7 +91,7 @@ module "llamaindex_workload_identity" {
 }
 
 provider "kubectl" {
-  alias                  = "llamaindex"
+  alias                  = "ai_starter_kit"
   apply_retry_count      = 15
   host                   = local.host
   token                  = data.google_client_config.default.access_token

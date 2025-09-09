@@ -1,4 +1,4 @@
-project_id            = akvelon-gke-aieco
+project_id            = ""
 default_resource_name = ""
 
 cluster_name      = "" # Leave empty to use the default name (default_resource_name)
