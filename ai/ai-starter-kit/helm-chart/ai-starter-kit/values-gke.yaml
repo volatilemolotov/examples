@@ -1,7 +1,5 @@
 jupyterhub:
   singleuser:
-    networkPolicy:
-      enabled: false
     initContainers:
       # This init cntainer makes sure that home folder that we mount has correct owner
       - name: chown-home-mount-dir
@@ -67,20 +65,10 @@ jupyterhub:
         ephemeral-storage: '10G'
       guarantees:
         ephemeral-storage: '10G'
-  hub:
-    networkPolicy:
-      enabled: false
   scheduling:
     userScheduler:
       # For now we disable the scheduler because GKE Autopilot Warden does not allow using of a custom scheduler
       enabled: false
-  proxy:
-    chp:
-      networkPolicy:
-        enabled: false
-    traefik:
-      networkPolicy:
-        enabled: false
 
 ray-cluster:
   enabled: true

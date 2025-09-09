@@ -5,6 +5,8 @@ jupyterhub:
   fullnameOverride:
 
   singleuser:
+    networkPolicy:
+      enabled: false
     defaultUrl: "/lab/tree/welcome.ipynb"
     image:
       name: jupyterhub/k8s-singleuser-sample
@@ -77,6 +79,8 @@ jupyterhub:
       RAY_ADDRESS: "ray://ai-starter-kit-kuberay-head-svc:10001"
       MLFLOW_TRACKING_URI: "http://ai-starter-kit-mlflow:5000"
   hub:
+    networkPolicy:
+      enabled: false
     db:
       type: sqlite-pvc
       pvc:
@@ -89,6 +93,13 @@ jupyterhub:
         c.DummyAuthenticator.password = "sneakypass"
       01-spawner-timeouts: |
         c.KubeSpawner.start_timeout = 1800
+  proxy:
+    chp:
+      networkPolicy:
+        enabled: false
+    traefik:
+      networkPolicy:
+        enabled: false
 
 ray-cluster:
   image:
