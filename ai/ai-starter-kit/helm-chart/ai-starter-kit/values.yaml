@@ -171,7 +171,10 @@ ollama:
 
 ramalama:
   enabled: true
-  command: ["sh", "-c" , "trap 'exit 0' TERM; while true; do sleep 60 & wait; done"]
+  command:
+    - /bin/sh
+    - -c
+    - ramalama pull qwen2.5:1.5b && ramalama serve qwen2.5:1.5b --port 8080
   image:
     repository: "quay.io/ramalama/ramalama"
     tag: "latest"
