@@ -24,4 +24,26 @@ spec:
         imagePullPolicy: {{ .Values.ramalama.image.pullPolicy }}
         command:
           {{- toYaml .Values.ramalama.command | nindent 10 }}
+        ports:
+          - name: http
+            containerPort: 8080
+            protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ai-starter-kit.fullname" . }}-ramalama
+  labels:
+    {{- include "ai-starter-kit.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ramalama
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP
+  selector:
+    {{- include "ai-starter-kit.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: ramalama
 {{- end }}
