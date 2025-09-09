@@ -19,3 +19,25 @@ uninstall:
 
 destroy:
 	minikube delete
+
+validate_jupyterhub:
+	kubectl get pods; \
+    kubectl wait --for=condition=Ready pods -l 'component!=continuous-image-puller' --timeout=1800s; \
+    kubectl get pods; \
+    kubectl get services; \
+    kubectl port-forward service/ai-starter-kit-jupyterhub-proxy-public 8081:80 & \
+    PID=$$!; \
+    echo "Port-forward PID=$${PID}"; \
+    sleep 5s; \
+    python3 ./ci/test_hub.py "127.0.0.1:8081"; \
+    kill $$PID
+
+validate_ray:
+	kubectl wait --for=condition=Ready pods -l 'app.kubernetes.io/created-by=kuberay-operator' --timeout=1800s; \
+	kubectl get pods; \
+	kubectl get services; \
+	kubectl port-forward service/ai-starter-kit-kuberay-head-svc 8265:8265 & \
+	PID=$$!; \
+	sleep 10s; \
+	ray job submit --address=http://127.0.0.1:8265 -- python -c "import ray; ray.init(); print(ray.cluster_resources())"; \
+	kill $$PID
