@@ -23,10 +23,10 @@ dep_update:
 	helm dependency update helm-chart/ai-starter-kit
 
 install: check_hf_token
-	helm upgrade --install ai-starter-kit helm-chart/ai-starter-kit --set huggingface.token="your_hf_token" --timeout 10m -f helm-chart/ai-starter-kit/values.yaml
+	helm upgrade --install ai-starter-kit helm-chart/ai-starter-kit --set huggingface.token="$$HF_TOKEN" --timeout 10m -f helm-chart/ai-starter-kit/values.yaml
 
 install_gke: check_hf_token
-	helm upgrade --install ai-starter-kit helm-chart/ai-starter-kit --set huggingface.token="your_hf_token" --timeout 10m -f helm-chart/ai-starter-kit/values-gke.yaml
+	helm upgrade --install ai-starter-kit helm-chart/ai-starter-kit --set huggingface.token="$$HF_TOKEN" --timeout 10m -f helm-chart/ai-starter-kit/values-gke.yaml
 
 start:
 	mkdir -p /tmp/models-cache
