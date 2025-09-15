@@ -69,22 +69,24 @@ jupyterhub:
       limit: 32G
       guarantee: 16G
 
-    profileList:
-      - display_name: "GPU Environment"
-        description: "Jupyter environment with GPU"
-        default: true
-        kubespawner_override:
-          extra_resource_limits:
-            nvidia.com/gpu: "1"
-          extra_resource_guarantees:
-            nvidia.com/gpu: "1"
-          node_selector:
-            cloud.google.com/gke-accelerator: nvidia-l4
-          priority_class_name: "high-priority"
-
   scheduling:
     userScheduler:
       enabled: false
+
+hub:
+    config:
+      KubeSpawner:
+        profile_list:
+          - display_name: "GPU Environment"
+            description: "Jupyter environment with GPU acceleration"
+            default: true
+            kubespawner_override:
+              extra_resource_limits:
+                nvidia.com/gpu: "1"
+              extra_resource_guarantees:
+                nvidia.com/gpu: "1"
+              node_selector:
+                cloud.google.com/gke-accelerator: nvidia-l4
 
 ray-cluster:
   enabled: true
