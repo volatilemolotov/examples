@@ -57,7 +57,7 @@ jupyterhub:
         nvidia.com/gpu: 1
     
     nodeSelector:
-      cloud.google.com/gke-accelerator-type: nvidia-l4
+      cloud.google.com/gke-accelerator: nvidia-l4
     
     image:
       name: jupyter/tensorflow-notebook # - gpu optimzied img
@@ -79,7 +79,7 @@ jupyterhub:
           extra_resource_guarantees:
             nvidia.com/gpu: "1"
           node_selector:
-            cloud.google.com/gke-accelerator-type: nvidia-l4
+            cloud.google.com/gke-accelerator: nvidia-l4
           priority_class_name: "high-priority"
 
   scheduling:
@@ -93,7 +93,7 @@ ray-cluster:
   
   head:
     nodeSelector:
-      cloud.google.com/gke-accelerator-type: nvidia-l4
+      cloud.google.com/gke-accelerator: nvidia-l4
     resources:
       requests:
         cpu: "4"
@@ -108,7 +108,7 @@ ray-cluster:
   
   worker:
     nodeSelector:
-      cloud.google.com/gke-accelerator-type: nvidia-l4
+      cloud.google.com/gke-accelerator: nvidia-l4
     containerEnv:
       - name: PYTHONPATH
         value: "/mnt/ray-storage/libraries"
@@ -142,7 +142,7 @@ ray-cluster:
 ramalama:
   enabled: true
   nodeSelector:
-    cloud.google.com/gke-accelerator-type: nvidia-l4
+    cloud.google.com/gke-accelerator: nvidia-l4
   command:
     - /bin/sh
     - -c
