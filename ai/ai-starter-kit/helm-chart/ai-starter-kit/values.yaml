@@ -180,13 +180,32 @@ ollama:
     subPath: "ollama"
 
 
+
 ramalama:
   enabled: true
+  nodeSelector:
+    cloud.google.com/gke-accelerator: nvidia-l4 
   command:
     - /bin/sh
     - -c
-    - ramalama pull qwen2.5:1.5b && ramalama serve qwen2.5:1.5b --port 8080
+    - |
+      # Verify GPU availability and serve with CUDA
+      echo "Checking GPU availability..."
+      nvidia-smi
+      echo "Pulling model..."
+      ramalama pull qwen2.5:1.5b
+      echo "Starting server with GPU..."
+      ramalama serve qwen2.5:1.5b --port 8080 --device cuda
   image:
     repository: "quay.io/ramalama/ramalama"
     tag: "latest"
     pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: "2"
+      memory: "4Gi"
+      nvidia.com/gpu: 1 
+    limits:
+      cpu: "4"
+      memory: "8Gi"
+      nvidia.com/gpu: 1
