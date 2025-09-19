@@ -1,0 +1,153 @@
+genericDevicePlugin:
+  enabled: true
+  image:
+    repository: "squat/generic-device-plugin"
+    tag: "latest"
+    pullPolicy: "IfNotPresent"
+  device:
+    count: 6
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "50Mi"
+    limits:
+      cpu: "150m"
+      memory: "100Mi"
+
+jupyterhub:
+  singleuser:
+    image:
+      name: jupyter/tensorflow-notebook
+      tag: "latest"
+    
+    cpu:
+      limit: 4
+      guarantee: 1
+    memory:
+      limit: 8G
+      guarantee: 2G
+    
+    extraResource:
+      limits:
+        squat.ai/dri: "1"
+      guarantees:
+        squat.ai/dri: "1"
+    
+    extraEnv:
+      NVIDIA_VISIBLE_DEVICES: "all"
+      NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+      HF_TOKEN:
+        name: HF_TOKEN
+        valueFrom:
+          secretKeyRef:
+            name: ai-starter-kit-hf-token-secret
+            key: token
+      RAY_ADDRESS: "ray://ai-starter-kit-kuberay-head-svc:10001"
+      MLFLOW_TRACKING_URI: "http://ai-starter-kit-mlflow:5000"
+    
+    storage:
+      type: static
+      static:
+        pvcName: "ai-starter-kit-models-cache-pvc"
+        subPath: "jupyterhub_workspace"
+      capacity: 40Gi
+      homeMountPath: /home/jovyan
+      extraVolumes:
+        - name: init-files
+          configMap:
+            name: "ai-starter-kit-init-files"
+        - name: dev-dri
+          hostPath:
+            path: /dev/dri
+      extraVolumeMounts:
+        - name: dev-dri
+          mountPath: /dev/dri
+
+ray-cluster:
+  image:
+    tag: "2.41.0-py312-cpu-aarch64" 
+  
+  head:
+    resources:
+      requests:
+        cpu: "2"
+        memory: "4G"
+        ephemeral-storage: 10Gi
+        squat.ai/dri: "1"
+      limits:
+        cpu: "8"
+        memory: "16G"
+        ephemeral-storage: 10Gi
+        squat.ai/dri: "1"
+  
+  worker:
+    resources:
+      requests:
+        cpu: "2"
+        memory: "4G"
+        ephemeral-storage: 10Gi
+        squat.ai/dri: "1"
+      limits:
+        cpu: "8"
+        memory: "16G"
+        ephemeral-storage: 10Gi
+        squat.ai/dri: "1"
+
+ollama:
+  enabled: true
+  ollama:
+    models:
+      pull:
+        - gemma3
+        - llama3.2
+  resources:
+    requests:
+      cpu: 1
+      memory: 4Gi
+      squat.ai/dri: "1"
+    limits:
+      cpu: 4
+      memory: 8Gi
+      squat.ai/dri: "1"
+  
+  persistentVolume:
+    enabled: true
+    existingClaim: "ai-starter-kit-models-cache-pvc"
+    subPath: "ollama"
+
+ramalama:
+  enabled: true
+  command:
+    - /bin/sh
+    - -c
+    - ramalama pull qwen2.5:1.5b && ramalama serve qwen2.5:1.5b --port 8080 --device metal
+  
+  resources:
+    requests:
+      cpu: 1
+      memory: 2Gi
+      squat.ai/dri: "1"
+    limits:
+      cpu: 4
+      memory: 8Gi
+      squat.ai/dri: "1"
+  
+  extraVolumeMounts:
+    - name: dev-dri
+      mountPath: /dev/dri
+  
+  extraVolumes:
+    - name: dev-dri
+      hostPath:
+        path: /dev/dri
+
+modelsCachePvc:
+  enabled: true
+  storageClassName: "standard-rwo"
+  accessModes:
+    - ReadWriteOnce
+  size: 40Gi 
+
+localPersistence:
+  enabled: true
+  hostPath: "/tmp/models-cache"
