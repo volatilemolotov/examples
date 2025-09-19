@@ -37,4 +37,4 @@ ramalama:
       echo "Pulling model..." && ramalama pull qwen2.5:1.5b
       echo "Starting server..." && exec ramalama serve qwen2.5:1.5b --port 8080 --device cuda
 
-# we can run this along with values-gke: helm install ai-starter-kit . --set huggingface.token="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" -f values-gke.yaml -f values-ramalama-gpu.yaml
+# we can run this along with values-gke: helm install ai-starter-kit . --set huggingface.token="HF_TOKEN" -f values-gke.yaml -f values-ramalama-gpu.yaml
