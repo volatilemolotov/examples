@@ -43,4 +43,4 @@ ollama:
     type: ClusterIP
     port: 11434
 
-# we can run this along with values-gke: helm install ai-starter-kit . --set huggingface.token="HF_TOKEN" -f values-gke.yaml -f values-ollama-gpu.yaml
+# we can run this along with values-gke: helm install ai-starter-kit . --set huggingface.token="" -f values-gke.yaml -f values-ollama-gpu.yaml
