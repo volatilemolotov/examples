@@ -190,3 +190,6 @@ ramalama:
     repository: "quay.io/ramalama/ramalama"
     tag: "latest"
     pullPolicy: IfNotPresent
+
+genericDevicePlugin:
+  enabled: false
