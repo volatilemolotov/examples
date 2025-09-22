@@ -12,7 +12,7 @@ endif
 
 package_helm:
 	helm package helm-chart/ai-starter-kit/ --destination out/
- 
+
 push_helm: check_OCI_target
 	helm push out/ai-starter-kit* oci://$$OCI_HELM_TARGET
 
@@ -28,6 +28,9 @@ install: check_hf_token
 install_gke: check_hf_token
 	helm upgrade --install ai-starter-kit helm-chart/ai-starter-kit --set huggingface.token="$$HF_TOKEN" --timeout 10m -f helm-chart/ai-starter-kit/values-gke.yaml
 
+install_gke_gpu: check_hf_token
+	helm upgrade --install ai-starter-kit helm-chart/ai-starter-kit --set huggingface.token="$$HF_TOKEN" --timeout 10m -f helm-chart/ai-starter-kit/values-gke-gpu.yaml
+
 start:
 	mkdir -p /tmp/models-cache
 	minikube start --cpus 4 --memory 15000 --mount --mount-string="/tmp/models-cache:/tmp/models-cache"
@@ -38,6 +41,8 @@ start_gpu:
 
 uninstall:
 	helm uninstall ai-starter-kit
+	kubectl delete pod jupyter-user
+	kubectl delete pvc ai-starter-kit-jupyterhub-hub-db-dir
 
 destroy:
 	minikube delete
