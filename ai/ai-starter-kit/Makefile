@@ -36,8 +36,8 @@ start:
 	minikube start --cpus 4 --memory 15000 --mount --mount-string="/tmp/models-cache:/tmp/models-cache"
 
 start_gpu:
-	mkdir -p /tmp/models-cache
-	minikube start --driver krunkit --cpus 4 --memory 15000 --mount --mount-string="/tmp/models-cache:/tmp/models-cache"
+	mkdir -p $HOME/models-cache
+	minikube start --driver krunkit --cpus 4 --memory 15000 --mount --mount-string="$HOME/models-cache:$HOME/models-cache"
 
 uninstall:
 	helm uninstall ai-starter-kit

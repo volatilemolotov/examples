@@ -102,6 +102,7 @@ jupyterhub:
         enabled: false
 
 ray-cluster:
+  enabled: false
   image:
     tag: "2.41.0-py312-cpu-aarch64"
   head:
@@ -193,3 +194,6 @@ ramalama:
     repository: "quay.io/ramalama/ramalama"
     tag: "latest"
     pullPolicy: IfNotPresent
+
+genericDevicePlugin:
+  enabled: false
