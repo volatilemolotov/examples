@@ -25,7 +25,7 @@ jupyterhub:
           - |
             set -e
             pip install -r /tmp/requirements.txt
-            python /tmp/download_models.py
+            python /tmp/download_models.py "/mnt/jovyan/jupyter_models"
             for f in /tmp/*.ipynb; do
               if [ -f "$f" ]; then
                 cp -n "$f" /home/jovyan/
@@ -47,7 +47,7 @@ jupyterhub:
             cpu: "4"
             memory: 32Gi
             ephemeral-storage: 10Gi
-    
+
     extraResource:
       limits:
         ephemeral-storage: '10G'
@@ -55,14 +55,32 @@ jupyterhub:
       guarantees:
         ephemeral-storage: '10G'
         nvidia.com/gpu: 1
-    
+
     nodeSelector:
       cloud.google.com/gke-accelerator: nvidia-l4
-    
+
     image:
       name: jupyter/tensorflow-notebook # - gpu optimzied img
       tag: "latest"
-    
+
+    storage:
+      type: static
+      static:
+        pvcName: "ai-starter-kit-models-cache-pvc"
+        subPath: "jupyterhub_workspace"
+      capacity: 20Gi
+      homeMountPath: /home/jovyan
+      extraVolumes:
+        - name: init-files
+          configMap:
+            name: "ai-starter-kit-init-files"
+        - name: models-cache
+          persistentVolumeClaim:
+            claimName: ai-starter-kit-models-cache-only-pvc
+      extraVolumeMounts:
+        - mountPath: "/mnt/jovyan"
+          name: models-cache
+
     cloudMetadata:
       blockWithIptables: false
     memory:
@@ -90,7 +108,7 @@ ray-cluster:
   enabled: true
   image:
     tag: 2.41.0-py312-gpu
-  
+
   head:
     nodeSelector:
       cloud.google.com/gke-accelerator: nvidia-l4
@@ -105,7 +123,7 @@ ray-cluster:
         memory: "6G"
         ephemeral-storage: 10Gi
         nvidia.com/gpu: 1
-  
+
   worker:
     nodeSelector:
       cloud.google.com/gke-accelerator: nvidia-l4
@@ -139,6 +157,17 @@ ray-cluster:
     podSecurityContext:
       fsGroup: 1000
 
+ollama:
+  enabled: true
+  ollama:
+    models:
+      pull:
+        - gemma3
+  persistentVolume:
+    enabled: true
+    existingClaim: "ai-starter-kit-models-cache-only-pvc"
+    subPath: "ollama"
+
 ramalama:
   enabled: true
   nodeSelector:
@@ -171,9 +200,20 @@ rayPvc:
   enabled: true
 
 modelsCachePvc:
+  storageClassName: "premium-rwo"
+  accessModes:
+    - ReadWriteOnce
+  size: 20Gi
+
+modelsCacheOnlyPvc:
+  enabled: true
   storageClassName: "standard-rwx"
   accessModes:
     - ReadWriteMany
+  size: 100Gi
 
 localPersistence:
+  enabled: false
+
+genericDevicePlugin:
   enabled: false

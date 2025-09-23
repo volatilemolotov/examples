@@ -27,7 +27,7 @@ jupyterhub:
             set -e
             pip install -r /tmp/requirements.txt
 
-            python /tmp/download_models.py
+            python /tmp/download_models.py "/mnt/jovyan/jupyter_models"
 
             # populate workspace with initial notebook files
             for f in /tmp/*.ipynb; do
@@ -42,6 +42,8 @@ jupyterhub:
           - name: home
             mountPath: /home/jovyan
             subPath: jupyterhub_workspace
+          - name: models-cache
+            mountPath: /mnt/jovyan
           - name: init-files
             mountPath: /tmp
             readOnly: true
@@ -54,6 +56,23 @@ jupyterhub:
             cpu: "4"
             memory: 32Gi
             ephemeral-storage: 10Gi
+    storage:
+      type: static
+      static:
+        pvcName: "ai-starter-kit-models-cache-pvc"
+        subPath: "jupyterhub_workspace"
+      capacity: 20Gi
+      homeMountPath: /home/jovyan
+      extraVolumes:
+        - name: init-files
+          configMap:
+            name: "ai-starter-kit-init-files"
+        - name: models-cache
+          persistentVolumeClaim:
+            claimName: ai-starter-kit-models-cache-only-pvc
+      extraVolumeMounts:
+        - mountPath: "/mnt/jovyan"
+          name: models-cache
     cloudMetadata:
       # Without this disabled, the GKE Autopilot Warden will raise an error about container with escalated privilieges
       blockWithIptables: false
@@ -109,13 +128,35 @@ ray-cluster:
     podSecurityContext:
       fsGroup: 1000
 
+ollama:
+  enabled: true
+  ollama:
+    models:
+      pull:
+        - gemma3
+  persistentVolume:
+    enabled: true
+    existingClaim: "ai-starter-kit-models-cache-only-pvc"
+    subPath: "ollama"
+
 rayPvc:
   enabled: true
 
 modelsCachePvc:
+  storageClassName: "premium-rwo"
+  accessModes:
+    - ReadWriteOnce
+  size: 20Gi
+
+modelsCacheOnlyPvc:
+  enabled: true
   storageClassName: "standard-rwx"
   accessModes:
     - ReadWriteMany
+  size: 100Gi
 
 localPersistence:
+  enabled: false
+
+genericDevicePlugin:
   enabled: false

@@ -158,6 +158,9 @@ modelsCachePvc:
     - ReadWriteOnce
   size: 10Gi
 
+modelsCacheOnlyPvc:
+  enabled: false
+
 localPersistence:
   # For local development with minikube, this allows persisting the models-cache
   # on the host machine, surviving `minikube stop/start`.
