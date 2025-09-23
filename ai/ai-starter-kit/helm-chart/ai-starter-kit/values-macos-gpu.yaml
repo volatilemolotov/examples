@@ -17,34 +17,50 @@ genericDevicePlugin:
 jupyterhub:
   singleuser:
     image:
-      name: jupyter/tensorflow-notebook
-      tag: "latest"
-    
-    cpu:
-      limit: 4
-      guarantee: 1
-    memory:
-      limit: 8G
-      guarantee: 2G
-    
-    extraResource:
-      limits:
-        squat.ai/dri: "1"
-      guarantees:
-        squat.ai/dri: "1"
-    
-    extraEnv:
-      NVIDIA_VISIBLE_DEVICES: "all"
-      NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
-      HF_TOKEN:
-        name: HF_TOKEN
-        valueFrom:
-          secretKeyRef:
-            name: ai-starter-kit-hf-token-secret
-            key: token
-      RAY_ADDRESS: "ray://ai-starter-kit-kuberay-head-svc:10001"
-      MLFLOW_TRACKING_URI: "http://ai-starter-kit-mlflow:5000"
-    
+      name: jupyterhub/k8s-singleuser-sample
+      tag: "4.2.0"
+    # initContainers:
+    #   - name: chown-home-mount-dir
+    #     image: jupyterhub/k8s-singleuser-sample:4.2.0
+    #     securityContext:
+    #       runAsUser: 0
+    #     command: ["chown", "jovyan", "/home/jovyan"]
+    #     volumeMounts:
+    #       - name: home
+    #         mountPath: /home/jovyan
+    #         subPath: jupyterhub_workspace
+
+    #   - name: model-initializer
+    #     image: jupyterhub/k8s-singleuser-sample:4.2.0
+    #     env:
+    #       - name: HF_TOKEN
+    #         valueFrom:
+    #           secretKeyRef:
+    #             name: ai-starter-kit-hf-token-secret
+    #             key: token
+    #     command:
+    #       - /bin/sh
+    #       - -c
+    #       - |
+    #         set -e
+    #         pip install -r /tmp/requirements.txt
+
+    #         python /tmp/download_models.py
+
+    #         # populate workspace with initial notebook files
+    #         for f in /tmp/*.ipynb; do
+    #           if [ -f "$f" ]; then
+    #             # Use cp -n to not overwrite existing files.
+    #             cp -n "$f" /home/jovyan/
+    #           fi
+    #         done
+    #     volumeMounts:
+    #       - name: home
+    #         mountPath: /home/jovyan
+    #         subPath: jupyterhub_workspace
+    #       - name: init-files
+    #         mountPath: /tmp
+    #         readOnly: true
     storage:
       type: static
       static:
@@ -62,36 +78,36 @@ jupyterhub:
       extraVolumeMounts:
         - name: dev-dri
           mountPath: /dev/dri
-
-ray-cluster:
-  image:
-    tag: "2.41.0-py312-cpu-aarch64" 
-  
-  head:
-    resources:
-      requests:
-        cpu: "2"
-        memory: "4G"
-        ephemeral-storage: 10Gi
-        squat.ai/dri: "1"
-      limits:
-        cpu: "8"
-        memory: "16G"
-        ephemeral-storage: 10Gi
-        squat.ai/dri: "1"
-  
-  worker:
-    resources:
-      requests:
-        cpu: "2"
-        memory: "4G"
-        ephemeral-storage: 10Gi
-        squat.ai/dri: "1"
-      limits:
-        cpu: "8"
-        memory: "16G"
-        ephemeral-storage: 10Gi
-        squat.ai/dri: "1"
+  #   extraEnv:
+  #     HF_TOKEN:
+  #       name: HF_TOKEN
+  #       valueFrom:
+  #         secretKeyRef:
+  #           name: ai-starter-kit-hf-token-secret
+  #           key: token
+  #     RAY_ADDRESS: "ray://ai-starter-kit-kuberay-head-svc:10001"
+  #     MLFLOW_TRACKING_URI: "http://ai-starter-kit-mlflow:5000"
+  # hub:
+  #   networkPolicy:
+  #     enabled: false
+  #   db:
+  #     type: sqlite-pvc
+  #     pvc:
+  #       annotations:
+  #         helm.sh/resource-policy: keep
+  #   extraConfig:
+  #     00-dummy-authenticator: |
+  #       c.DummyAuthenticator.password = "sneakypass"
+  #     01-spawner-timeouts: |
+  #       c.KubeSpawner.start_timeout = 1800
+  # proxy:
+  #   chp:
+  #     networkPolicy:
+  #       enabled: false
+  #   traefik:
+  #     networkPolicy:
+  #       enabled: false  
+    
 
 ollama:
   enabled: true
@@ -143,11 +159,11 @@ ramalama:
 
 modelsCachePvc:
   enabled: true
-  storageClassName: "standard-rwo"
+  storageClassName: "standard"
   accessModes:
     - ReadWriteOnce
   size: 40Gi 
 
 localPersistence:
   enabled: true
-  hostPath: "/tmp/models-cache"
+  hostPath: "/home/models-cache"
