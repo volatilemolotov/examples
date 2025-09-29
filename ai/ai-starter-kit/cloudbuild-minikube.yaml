@@ -1,0 +1,326 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+
+steps:
+- id: "ai-starter-kit: validate minikube platform"
+  name: "gcr.io/${PROJECT_ID}/terraform"
+  dir: "/workspace/ci/minikube"
+  script: |
+    terraform init -no-color
+    terraform validate -no-color
+  waitFor: ["-"]
+
+- id: 'ai-starter-kit: create minikube instance'
+  name: "gcr.io/${PROJECT_ID}/terraform"
+  dir: "/workspace/ci/minikube"
+  entrypoint: 'sh'
+  args:
+  - '-c'
+  - |
+    set -e
+
+    echo "fail" > /workspace/ai_starter_kit_minikube_result.txt
+    terraform apply \
+    -var-file=default_env.tfvars \
+    -var=project_id=$PROJECT_ID \
+    -var=instance_name=ml-ai-starter-kit-${SHORT_SHA}-${_BUILD_ID} \
+    -var=region=${_REGION} \
+    -var=zone=${_REGION}-a \
+    -var=ssh_user=ubuntu \
+    -auto-approve -no-color
+    echo "pass" > /workspace/ai_starter_kit_minikube_result.txt
+  allowFailure: true
+  waitFor: ['ai-starter-kit: validate minikube platform']
+
+- id: 'ai-starter-kit: wait for minikube ready'
+  name: 'gcr.io/${PROJECT_ID}/terraform'
+  entrypoint: 'sh'
+  args:
+  - '-c'
+  - |
+    set -e
+    
+    echo "fail" > /workspace/ai_starter_kit_minikube_ready_result.txt
+    
+    cd /workspace/ci/minikube
+    INSTANCE_NAME=$$(terraform output -raw instance_name)
+    ZONE=$$(terraform output -raw zone)
+    
+    echo "Waiting for minikube setup to complete on instance: $$INSTANCE_NAME"
+    
+    for i in $(seq 1 30); do
+      echo "Attempt $$i/30: Checking if minikube setup is complete..."
+      
+      if gcloud compute ssh ubuntu@$$INSTANCE_NAME \
+        --zone=$$ZONE \
+        --project=$PROJECT_ID \
+        --command="test -f /tmp/minikube_setup_complete && kubectl get nodes" \
+        --ssh-flag="-o ConnectTimeout=10" \
+        --ssh-flag="-o StrictHostKeyChecking=no" 2>/dev/null; then
+        echo "Minikube setup completed and cluster is accessible!"
+        break
+      fi
+      
+      if [ $$i -eq 30 ]; then
+        echo "Timeout waiting for minikube setup"
+        exit 1
+      fi
+      
+      sleep 30
+    done
+    
+    echo "pass" > /workspace/ai_starter_kit_minikube_ready_result.txt
+  allowFailure: true
+  waitFor: ['ai-starter-kit: create minikube instance']
+
+- id: 'ai-starter-kit: copy files to instance'
+  name: 'gcr.io/${PROJECT_ID}/terraform'
+  entrypoint: 'sh'
+  args:
+  - '-c'
+  - |
+    set -e
+    
+    echo "fail" > /workspace/ai_starter_kit_copy_files_result.txt
+    
+    cd /workspace/ci/minikube
+    INSTANCE_NAME=$$(terraform output -raw instance_name)
+    ZONE=$$(terraform output -raw zone)
+    
+    gcloud compute scp --recurse \
+      /workspace/ ubuntu@$$INSTANCE_NAME:/tmp/workspace/ \
+      --zone=$$ZONE \
+      --project=$PROJECT_ID \
+      --scp-flag="-o StrictHostKeyChecking=no"
+    
+    echo "pass" > /workspace/ai_starter_kit_copy_files_result.txt
+  allowFailure: true
+  waitFor: ['ai-starter-kit: wait for minikube ready']
+
+- id: 'ai-starter-kit: install helm and dependencies'
+  name: 'gcr.io/${PROJECT_ID}/terraform'
+  entrypoint: 'sh'
+  args:
+  - '-c'
+  - |
+    set -e
+
+    echo "fail" > /workspace/ai_starter_kit_install_deps_result.txt
+    
+    cd /workspace/ci/minikube
+    INSTANCE_NAME=$$(terraform output -raw instance_name)
+    ZONE=$$(terraform output -raw zone)
+    
+    gcloud compute ssh ubuntu@$$INSTANCE_NAME \
+      --zone=$$ZONE \
+      --project=$PROJECT_ID \
+      --ssh-flag="-o StrictHostKeyChecking=no" \
+      --command="
+        cd /tmp/workspace && 
+        sudo apt update && 
+        sudo apt install curl make python3-venv python3-pip --assume-yes && 
+        curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 && 
+        chmod 700 get_helm.sh && 
+        sudo ./get_helm.sh &&
+        pip install --break-system-packages pyyaml requests packaging
+      "
+    
+    echo "pass" > /workspace/ai_starter_kit_install_deps_result.txt
+  allowFailure: true
+  waitFor: ['ai-starter-kit: copy files to instance']
+
+- id: 'ai-starter-kit: make install on minikube'
+  name: 'gcr.io/${PROJECT_ID}/terraform'
+  env:
+  - "HF_TOKEN=dummy_token_for_testing"
+  entrypoint: 'sh'
+  args:
+  - '-c'
+  - |
+    set -e
+
+    echo "fail" > /workspace/ai_starter_kit_make_install_result.txt
+    
+    cd /workspace/ci/minikube
+    INSTANCE_NAME=$$(terraform output -raw instance_name)
+    ZONE=$$(terraform output -raw zone)
+    
+    gcloud compute ssh ubuntu@$$INSTANCE_NAME \
+      --zone=$$ZONE \
+      --project=$PROJECT_ID \
+      --ssh-flag="-o StrictHostKeyChecking=no" \
+      --command="
+        cd /tmp/workspace && 
+        export HF_TOKEN=dummy_token_for_testing &&
+        make install &&
+        sleep 300
+      "
+    
+    echo "pass" > /workspace/ai_starter_kit_make_install_result.txt
+  allowFailure: true
+  waitFor: ['ai-starter-kit: install helm and dependencies']
+
+- id: 'ai-starter-kit: test jupyterhub'
+  name: 'gcr.io/akvelon-gke-aieco/terraform'
+  entrypoint: 'sh'
+  args:
+  - '-c'
+  - |
+    set -e
+
+    echo "fail" > /workspace/ai_starter_kit_jupyterhub_test_result.txt
+
+    cd /workspace/ci/minikube
+    INSTANCE_NAME=$$(terraform output -raw instance_name)
+    ZONE=$$(terraform output -raw zone)
+    
+    gcloud compute ssh ubuntu@$$INSTANCE_NAME \
+      --zone=$$ZONE \
+      --project=$PROJECT_ID \
+      --ssh-flag="-o StrictHostKeyChecking=no" \
+      --ssh-flag="-o ServerAliveInterval=60" \
+      --ssh-flag="-o ServerAliveCountMax=10" \
+      --command="
+        set -e
+        cd /tmp/workspace
+        export KUBECONFIG=/home/ubuntu/.kube/config
+        
+        make validate_jupyterhub
+        
+        echo 'JupyterHub test passed'
+      " && echo "pass" > /workspace/ai_starter_kit_jupyterhub_test_result.txt || echo "JupyterHub test failed"
+
+  allowFailure: true
+  waitFor: ['ai-starter-kit: make install on minikube']
+
+- id: "ai-starter-kit: test ramalama"
+  name: 'gcr.io/akvelon-gke-aieco/terraform'
+  entrypoint: 'sh'
+  args:
+  - '-c'
+  - |
+    set -e
+    echo "fail" > /workspace/ai_starter_kit_ramalama_result.txt
+
+    cd /workspace/ci/minikube
+    INSTANCE_NAME=$$(terraform output -raw instance_name)
+    ZONE=$$(terraform output -raw zone)
+    
+    gcloud compute ssh ubuntu@$$INSTANCE_NAME \
+      --zone=$$ZONE \
+      --project=$PROJECT_ID \
+      --ssh-flag="-o StrictHostKeyChecking=no" \
+      --ssh-flag="-o ServerAliveInterval=60" \
+      --ssh-flag="-o ServerAliveCountMax=10" \
+      --command="
+        set -e
+        cd /tmp/workspace
+        export KUBECONFIG=/home/ubuntu/.kube/config
+        
+        make validate_ramalama
+        
+        echo 'Ramalama test passed'
+      " && echo "pass" > /workspace/ai_starter_kit_ramalama_result.txt || echo "Ramalama test failed"
+
+  allowFailure: true
+  waitFor: ['ai-starter-kit: make install on minikube']
+
+- id: 'ai-starter-kit: cleanup minikube instance'
+  name: "gcr.io/${PROJECT_ID}/terraform"
+  dir: "/workspace/ci/minikube"
+  entrypoint: 'sh'
+  args:
+  - '-c'
+  - |
+    set -e
+
+    echo "fail" > /workspace/ai_starter_kit_cleanup_result.txt
+    terraform destroy \
+    -var-file=default_env.tfvars \
+    -var=project_id=$PROJECT_ID \
+    -var=instance_name=ml-ai-starter-kit-${SHORT_SHA}-${_BUILD_ID} \
+    -var=region=${_REGION} \
+    -var=zone=${_REGION}-a \
+    -var=ssh_user=ubuntu \
+    -auto-approve -no-color
+    echo "pass" > /workspace/ai_starter_kit_cleanup_result.txt
+  allowFailure: true
+  waitFor: ['ai-starter-kit: test jupyterhub', 'ai-starter-kit: test ramalama']
+
+- id: 'check result'
+  name: "ubuntu"
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    set -e
+
+    echo "pass" > /workspace/check_result.txt
+
+    if [[ $$(cat /workspace/ai_starter_kit_minikube_result.txt) != "pass" ]]; then
+      echo "ai starter kit minikube creation failed"
+      echo "error" > /workspace/check_result.txt
+    fi
+
+    if [[ $$(cat /workspace/ai_starter_kit_minikube_ready_result.txt) != "pass" ]]; then
+      echo "ai starter kit minikube ready check failed"
+      echo "error" > /workspace/check_result.txt
+    fi
+
+    if [[ $$(cat /workspace/ai_starter_kit_copy_files_result.txt) != "pass" ]]; then
+      echo "ai starter kit copy files failed"
+      echo "error" > /workspace/check_result.txt
+    fi
+
+    if [[ $$(cat /workspace/ai_starter_kit_install_deps_result.txt) != "pass" ]]; then
+      echo "ai starter kit install dependencies failed"
+      echo "error" > /workspace/check_result.txt
+    fi
+
+    if [[ $$(cat /workspace/ai_starter_kit_make_install_result.txt) != "pass" ]]; then
+      echo "ai starter kit make install failed"
+      echo "error" > /workspace/check_result.txt
+    fi
+
+    if [[ $$(cat /workspace/ai_starter_kit_jupyterhub_test_result.txt) != "pass" ]]; then
+      echo "ai starter kit jupyterhub test failed"
+      echo "error" > /workspace/check_result.txt
+    fi
+
+    if [[ $$(cat /workspace/ai_starter_kit_ramalama_result.txt) != "pass" ]]; then
+      echo "ai starter kit ramalama test failed"
+      echo "error" > /workspace/check_result.txt
+    fi
+
+    if [[ $$(cat /workspace/ai_starter_kit_cleanup_result.txt) != "pass" ]]; then
+      echo "ai starter kit clean up failed"
+      echo "error" > /workspace/check_result.txt
+    fi
+
+    if [[ $$(cat /workspace/check_result.txt) != "pass" ]]; then
+      cat /workspace/check_result.txt
+      exit 1
+    fi
+  waitFor: ['ai-starter-kit: cleanup minikube instance']
+
+substitutions:
+  _REGION: us-central1
+  _BUILD_ID: "${BUILD_ID}"
+options:
+  logging: CLOUD_LOGGING_ONLY
+  substitutionOption: "ALLOW_LOOSE"
+  machineType: "E2_HIGHCPU_8"
+timeout: 9000s

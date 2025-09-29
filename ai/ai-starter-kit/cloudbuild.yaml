@@ -63,6 +63,7 @@ steps:
   env:
   - "CLOUDSDK_COMPUTE_ZONE=${_REGION}"
   - "CLOUDSDK_CONTAINER_CLUSTER=ml-${SHORT_SHA}-${_BUILD_ID}-cluster"
+  - "HF_TOKEN=dummy_token_for_testing"
   entrypoint: 'sh'
   args:
   - '-c'
@@ -199,7 +200,7 @@ substitutions:
   _AUTOPILOT_CLUSTER: "true"
   _REGION: us-east4
   # _USER_NAME: github
-  _BUILD_ID: "1234567" #${BUILD_ID:0:8}
+  _BUILD_ID: "${BUILD_ID}" #"1234567" #${BUILD_ID:0:8}
 # logsBucket: gs://ai-on-gke-qss-build-logs
 options:
   logging: CLOUD_LOGGING_ONLY

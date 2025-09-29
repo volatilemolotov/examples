@@ -68,3 +68,15 @@ validate_ray:
 	sleep 10s; \
 	ray job submit --address=http://127.0.0.1:8265 -- python -c "import ray; ray.init(); print(ray.cluster_resources())"; \
 	kill $$PID
+
+validate_ramalama:
+	kubectl get pods; \
+	kubectl wait --for=condition=Ready pods -l 'app.kubernetes.io/name=ramalama' --timeout=1800s; \
+	kubectl get pods; \
+	kubectl get services; \
+	kubectl port-forward service/ai-starter-kit-ramalama 8080:8080 & \
+	PID=$$!; \
+	echo "Port-forward PID=$${PID}"; \
+	sleep 10s; \
+	python3 ./ci/test_ramalama.py "127.0.0.1:8080"; \
+	kill $$PID
