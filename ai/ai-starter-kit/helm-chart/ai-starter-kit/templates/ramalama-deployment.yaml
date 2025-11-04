@@ -26,10 +26,18 @@ spec:
       - name: ramalama
         image: "{{ .Values.ramalama.image.repository }}:{{ .Values.ramalama.image.tag }}"
         imagePullPolicy: {{ .Values.ramalama.image.pullPolicy }}
-        {{- if .Values.ramalama.command }}
         command:
-          {{- toYaml .Values.ramalama.command | nindent 10 }}
-        {{- end }}
+          - ramalama
+          - --store
+          - "/mnt/ramalama-store"
+          - serve
+          - {{ .Values.ramalama.models.serve }}
+          - "--port"
+          - "8080"
+        volumeMounts:
+          - name: store
+            mountPath: "/mnt/ramalama-store"
+            subPath: {{ .Values.ramalama.persistentVolume.subPath }}
         ports:
         - containerPort: 8080
           protocol: TCP
@@ -37,6 +45,23 @@ spec:
         resources:
           {{- toYaml .Values.ramalama.resources | nindent 10 }}
         {{- end }}
+      initContainers:
+      - name: init
+        image: "{{ .Values.ramalama.image.repository }}:{{ .Values.ramalama.image.tag }}"
+        imagePullPolicy: {{ .Values.ramalama.image.pullPolicy }}
+        command:
+          - "bash"
+          - "-c"
+          - |
+            ramalama --store /mnt/ramalama-store pull {{ .Values.ramalama.models.serve }}
+        volumeMounts:
+          - name: store
+            mountPath: "/mnt/ramalama-store"
+            subPath: {{ .Values.ramalama.persistentVolume.subPath }}
+      volumes:
+      - name: store
+        persistentVolumeClaim:
+          claimName: {{ .Values.ramalama.persistentVolume.existingClaim }}
 ---
 apiVersion: v1
 kind: Service

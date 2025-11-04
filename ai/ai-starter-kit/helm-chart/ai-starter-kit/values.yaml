@@ -183,17 +183,18 @@ ollama:
     existingClaim: "ai-starter-kit-models-cache-pvc"
     subPath: "ollama"
 
-
 ramalama:
   enabled: true
-  command:
-    - /bin/sh
-    - -c
-    - ramalama pull qwen2.5:1.5b && ramalama serve qwen2.5:1.5b --port 8080
   image:
     repository: "quay.io/ramalama/ramalama"
     tag: "latest"
     pullPolicy: IfNotPresent
+  persistentVolume:
+    enabled: true
+    existingClaim: "ai-starter-kit-models-cache-pvc"
+    subPath: "ramalama"
+  models:
+    serve: qwen2.5:1.5b
 
 genericDevicePlugin:
   enabled: false
