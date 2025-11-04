@@ -34,10 +34,12 @@ spec:
           - {{ .Values.ramalama.models.serve }}
           - "--port"
           - "8080"
+        {{- if .Values.ramalama.persistentVolume.enabled }}
         volumeMounts:
           - name: store
             mountPath: "/mnt/ramalama-store"
             subPath: {{ .Values.ramalama.persistentVolume.subPath }}
+        {{- end }}
         ports:
         - containerPort: 8080
           protocol: TCP
@@ -54,14 +56,18 @@ spec:
           - "-c"
           - |
             ramalama --store /mnt/ramalama-store pull {{ .Values.ramalama.models.serve }}
+        {{- if .Values.ramalama.persistentVolume.enabled }}
         volumeMounts:
           - name: store
             mountPath: "/mnt/ramalama-store"
             subPath: {{ .Values.ramalama.persistentVolume.subPath }}
+        {{- end }}
+      {{- if .Values.ramalama.persistentVolume.enabled }}
       volumes:
       - name: store
         persistentVolumeClaim:
           claimName: {{ .Values.ramalama.persistentVolume.existingClaim }}
+      {{- end }}
 ---
 apiVersion: v1
 kind: Service
